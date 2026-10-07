@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d4a2f">
+<title>원카드</title>
+<style>
+:root{--felt:#16704a;--felt2:#0b3f28;--gold:#ffd166;--red:#d62839;--ink:#1b1b1b;--cw:56px}
+@media (min-width:480px){:root{--cw:64px}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(ellipse at center,var(--felt) 0%,var(--felt2) 100%);color:#fff;
+  font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:560px;margin:0 auto;
+  padding:10px 16px calc(12px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{font-size:20px;margin:0;letter-spacing:1px}
+.score{font-size:13px;opacity:.85}
+.iconbtn{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+
+.zone{display:flex;flex-direction:column;align-items:center;gap:6px}
+.who{font-size:13px;opacity:.9;display:flex;gap:8px;align-items:center}
+.who b{background:rgba(0,0,0,.25);padding:2px 8px;border-radius:999px}
+.who.turn b{background:var(--gold);color:#222}
+
+.hand{display:flex;justify-content:center;width:100%;padding-top:14px;min-height:calc(var(--cw)*1.42 + 18px)}
+.hand.ai{--cw:40px;padding-top:4px;min-height:calc(40px*1.42 + 6px)}
+
+.card{width:var(--cw);height:calc(var(--cw)*1.42);background:#fff;color:var(--ink);border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);position:relative;flex:0 0 auto;transition:transform .15s,filter .15s}
+.card .c{position:absolute;top:4px;left:5px;font-weight:800;font-size:calc(var(--cw)*.26);line-height:1.05;text-align:center}
+.card .m{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.52);font-weight:800}
+.card .tag{position:absolute;right:3px;bottom:3px;font-size:10px;font-weight:700;background:#222;color:var(--gold);border-radius:4px;padding:1px 3px}
+.card.red{color:var(--red)}
+.card.joker .m{flex-direction:column;font-size:calc(var(--cw)*.2);gap:2px}
+.card.joker .m span{font-size:calc(var(--cw)*.42)}
+.card.back{background:repeating-linear-gradient(45deg,#b23a48 0 5px,#8e2a36 5px 10px);border:3px solid #fff}
+.hand.me .card{cursor:pointer}
+.hand.me .card.ok{transform:translateY(-12px);box-shadow:0 0 0 3px var(--gold),0 6px 10px rgba(0,0,0,.4)}
+.hand.me.locked .card{filter:brightness(.8)}
+.card.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.card.pop{animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(1.35) rotate(-8deg);opacity:.3}to{transform:none;opacity:1}}
+
+#center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+.table{display:flex;gap:28px;align-items:center;--cw:70px}
+.deck{position:relative;cursor:pointer}
+.deck .cnt{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:12px;opacity:.85}
+.badges{display:flex;gap:6px;min-height:26px;flex-wrap:wrap;justify-content:center}
+.badge{background:rgba(0,0,0,.35);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700}
+.badge.atk{background:var(--red);animation:pulse 1s infinite}
+.badge.suit{background:#fff;color:var(--ink)}
+.badge.suit.red{color:var(--red)}
+@keyframes pulse{50%{transform:scale(1.08)}}
+#msg{min-height:40px;text-align:center;font-size:15px;line-height:1.35;padding:0 6px}
+
+.controls{display:flex;gap:8px;justify-content:center;margin-top:6px}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-size:16px;font-weight:800;cursor:pointer;background:#fff;color:#222}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.draw{background:#f1f1f1}
+.btn.one{background:var(--gold);display:none}
+.btn.one.show{display:inline-block;animation:pulse .6s infinite}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal.show{display:flex}
+.box{background:#fff;color:#222;border-radius:16px;padding:20px;max-width:380px;width:100%;text-align:center;max-height:85vh;overflow:auto}
+.box h2{margin:0 0 10px}
+.box p,.box li{font-size:14px;line-height:1.5;text-align:left}
+.box ul{padding-left:18px;margin:6px 0}
+.suits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.suits button{font-size:34px;padding:10px 0;border-radius:12px;border:2px solid #ddd;background:#fafafa;cursor:pointer}
+.suits button.red{color:var(--red)}
+.big{font-size:44px;margin:4px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🃏 원카드</h1>
+    <span class="score" id="score"></span>
+    <button class="iconbtn" id="rulesBtn">규칙</button>
+  </header>
+
+  <div class="zone">
+    <div class="who" id="aiWho"><b>🤖 컴퓨터</b><span id="aiCount"></span></div>
+    <div class="hand ai" id="aiHand"></div>
+  </div>
+
+  <div id="center">
+    <div class="badges" id="badges"></div>
+    <div class="table">
+      <div class="deck" id="deck"><div class="card back"></div><div class="cnt" id="deckCnt"></div></div>
+      <div id="pile"></div>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="zone">
+    <div class="who" id="meWho"><b>🙂 나</b><span id="meCount"></span></div>
+    <div class="hand me" id="meHand"></div>
+    <div class="controls">
+      <button class="btn draw" id="drawBtn">카드 먹기</button>
+      <button class="btn one" id="oneBtn">원카드!</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="suitModal"><div class="box">
+  <h2>무늬를 바꾸세요</h2>
+  <div class="suits">
+    <button data-s="♠">♠</button><button data-s="♥" class="red">♥</button>
+    <button data-s="♦" class="red">♦</button><button data-s="♣">♣</button>
+  </div>
+</div></div>
+
+<div class="modal" id="endModal"><div class="box">
+  <div class="big" id="endEmoji"></div>
+  <h2 id="endTitle"></h2>
+  <p id="endText" style="text-align:center"></p>
+  <button class="btn" style="background:var(--gold)" id="againBtn">다시 하기</button>
+</div></div>
+
+<div class="modal" id="rulesModal"><div class="box">
+  <h2>원카드 규칙</h2>
+  <ul>
+    <li>각자 <b>7장</b>으로 시작, 손패를 먼저 다 내면 <b>승리</b></li>
+    <li>맨 위 카드와 <b>같은 무늬</b> 또는 <b>같은 숫자</b>를 낼 수 있어요</li>
+    <li>낼 카드가 없으면 <b>1장 먹기</b> (낼 수 있어도 먹어도 돼요)</li>
+    <li><b>공격</b>: 2 = +2장, A = +3장, ♠A = +5장, 흑백 조커 = +5장, 컬러 조커 = +7장</li>
+    <li>공격받으면 <b>같은 무늬·숫자이면서 더 세거나 같은</b> 공격 카드로 막을 수 있어요 (공격은 누적!). 못 막으면 쌓인 만큼 먹어요</li>
+    <li>조커는 아무 때나 낼 수 있고, 조커 뒤에는 아무 카드나 낼 수 있어요</li>
+    <li><b>J·Q·K</b>: 1대1이라 상대 턴을 건너뛰고 <b>한 번 더</b></li>
+    <li><b>7</b>: 원하는 <b>무늬로 바꾸기</b></li>
+    <li>카드가 1장 남으면 <b>원카드!</b> 버튼 싸움 — 늦게 누르면 1장 먹어요. 상대가 1장일 때 먼저 누르면 상대가 먹어요</li>
+    <li>손패가 <b>20장</b> 이상이 되면 <b>파산</b>(패배)</li>
+  </ul>
+  <button class="btn" style="background:var(--gold)" id="rulesClose">알겠어요</button>
+</div></div>
+
+<script>
+const SUITS=['♠','♥','♦','♣'];
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const BANKRUPT=20;
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const other=w=>w==='me'?'ai':'me';
+const NAME={me:'나',ai:'컴퓨터'};
+
+const isJoker=c=>c.s==='X';
+const isRed=c=>c.s==='♥'||c.s==='♦'||c.r==='CJ';
+const isFace=c=>c.r==='J'||c.r==='Q'||c.r==='K';
+function power(c){
+  if(c.r==='CJ') return 7;
+  if(c.r==='BJ') return 5;
+  if(c.r==='A') return c.s==='♠'?5:3;
+  if(c.r==='2') return 2;
+  return 0;
+}
+function label(c){
+  if(c.r==='CJ') return '컬러 조커';
+  if(c.r==='BJ') return '흑백 조커';
+  return c.s+c.r;
+}
+function makeDeck(){
+  const d=[];let id=0;
+  for(const s of SUITS) for(const r of RANKS) d.push({s,r,id:id++});
+  d.push({s:'X',r:'BJ',id:id++},{s:'X',r:'CJ',id:id++});
+  return d;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+let S;
+function newGame(){
+  const deck=shuffle(makeDeck());
+  S={deck,pile:[],hands:{me:[],ai:[]},turn:'me',attack:0,suit:null,over:false,busy:false,race:null,lastId:null};
+  for(let i=0;i<7;i++){S.hands.me.push(deck.pop());S.hands.ai.push(deck.pop())}
+  // 시작 카드는 특수 카드가 아닌 숫자 카드로
+  const i=deck.findIndex(c=>['3','4','5','6','8','9','10'].includes(c.r));
+  S.pile.push(deck.splice(i,1)[0]);
+  $('endModal').classList.remove('show');
+  say('내 차례예요! 빛나는 카드를 눌러서 내세요.');
+  render();
+}
+
+const topCard=()=>S.pile[S.pile.length-1];
+function canPlay(c){
+  const t=topCard();
+  if(S.attack>0){
+    const p=power(c);
+    if(!p||p<power(t)) return false;
+    if(isJoker(c)) return true;
+    if(isJoker(t)) return false;
+    return c.s===t.s||c.r===t.r;
+  }
+  if(isJoker(c)||isJoker(t)) return true;
+  return c.s===(S.suit||t.s)||c.r===t.r;
+}
+
+function drawOne(who){
+  if(!S.deck.length){
+    const t=S.pile.pop();
+    S.deck=shuffle(S.pile);S.pile=[t];
+    if(S.deck.length) say('덱을 다시 섞었어요.');
+  }
+  if(S.deck.length) S.hands[who].push(S.deck.pop());
+}
+function checkBankrupt(who){
+  if(S.hands[who].length>=BANKRUPT){end(other(who),'bankrupt');return true}
+  return false;
+}
+
+async function doPlay(who,c){
+  const h=S.hands[who];
+  h.splice(h.indexOf(c),1);
+  S.pile.push(c);S.suit=null;S.lastId=c.id;
+  const p=power(c);
+  if(p) S.attack+=p;
+  const extra=isFace(c);
+  let m=`${NAME[who]}: ${label(c)}`;
+  if(p) m+=` → 공격 누적 +${S.attack}!`;
+  else if(extra) m+=' → 한 번 더!';
+  say(m);render();
+  if(!h.length){await sleep(400);end(who,'empty');return}
+  if(c.r==='7'){
+    S.suit=who==='me'?await pickSuit():aiPickSuit();
+    say(`${NAME[who]}: 무늬를 ${S.suit}(으)로 바꿨어요.`);render();
+  }
+  if(h.length===1) await runRace(who);
+  if(S.over) return;
+  await afterAction(who,extra);
+}
+
+async function doDraw(who){
+  const n=S.attack>0?S.attack:1;
+  const wasAtk=S.attack>0;
+  S.attack=0;
+  for(let i=0;i<n;i++) drawOne(who);
+  say(wasAtk?`${NAME[who]}: 공격을 못 막아서 ${n}장 먹었어요! 😵`:`${NAME[who]}: 카드 1장 먹기`);
+  render();
+  if(checkBankrupt(who)) return;
+  await afterAction(who,false);
+}
+
+async function afterAction(who,extra){
+  S.turn=extra?who:other(who);
+  render();
+  if(S.turn==='ai'){await sleep(900);await aiTurn()}
+}
+
+// ---------- AI ----------
+async function aiTurn(){
+  if(S.over||S.turn!=='ai') return;
+  S.busy=true;
+  const playable=S.hands.ai.filter(canPlay);
+  if(!playable.length) await doDraw('ai');
+  else await doPlay('ai',aiChoose(playable));
+}
+function aiChoose(pl){
+  if(S.attack>0) return pl.sort((a,b)=>power(a)-power(b))[0];
+  const h=S.hands.ai, opp=S.hands.me.length;
+  const score=c=>{
+    let v=h.filter(x=>x.s===c.s).length*3+Math.random()*4;
+    if(power(c)) v+=opp<=3?50:-15;
+    if(isJoker(c)) v+=opp<=3?20:-40;
+    if(isFace(c)&&h.length>1) v+=25;
+    if(c.r==='7') v-=8;
+    return v;
+  };
+  return pl.sort((a,b)=>score(b)-score(a))[0];
+}
+function aiPickSuit(){
+  const cnt={};
+  for(const c of S.hands.ai) if(!isJoker(c)) cnt[c.s]=(cnt[c.s]||0)+1;
+  const best=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+  return best||SUITS[Math.random()*4|0];
+}
+
+// ---------- 원카드 버튼 싸움 ----------
+function runRace(target){
+  return new Promise(res=>{
+    const delay=target==='ai'?700+Math.random()*1300:1100+Math.random()*1500;
+    S.race={target,res,timer:setTimeout(()=>resolveRace('ai'),delay)};
+    say(target==='me'?'1장 남았어요! 빨리 <b>원카드!</b> 누르세요!':'컴퓨터가 1장! 먼저 <b>원카드!</b> 누르면 1장 먹여요!');
+    render();
+  });
+}
+function resolveRace(caller){
+  const r=S.race;if(!r) return;
+  clearTimeout(r.timer);S.race=null;
+  if(caller===r.target){
+    say(`${NAME[caller]}: 원카드! 🙌`);
+  }else{
+    drawOne(r.target);
+    say(`${NAME[caller]}이(가) 먼저 외쳤어요! ${NAME[r.target]} 1장 먹기 😝`);
+  }
+  render();
+  if(!checkBankrupt(r.target)) setTimeout(r.res,800);
+}
+
+// ---------- UI ----------
+function pickSuit(){
+  return new Promise(res=>{
+    const m=$('suitModal');m.classList.add('show');
+    m.querySelectorAll('button').forEach(b=>b.onclick=()=>{m.classList.remove('show');res(b.dataset.s)});
+  });
+}
+function say(html){$('msg').innerHTML=html}
+
+function cardEl(c){
+  const d=document.createElement('div');
+  d.className='card'+(isRed(c)?' red':'')+(isJoker(c)?' joker':'');
+  if(isJoker(c)){
+    d.innerHTML=`<div class="m"><span>🃏</span>JOKER</div>`;
+  }else{
+    d.innerHTML=`<div class="c">${c.r}<br>${c.s}</div><div class="m">${isFace(c)?c.r:c.s}</div>`;
+  }
+  const p=power(c);
+  const tag=p?'+'+p:isFace(c)?'↻':c.r==='7'?'무늬':'';
+  if(tag) d.innerHTML+=`<div class="tag">${tag}</div>`;
+  return d;
+}
+function backEl(){const d=document.createElement('div');d.className='card back';return d}
+
+function layoutOverlap(el,n,cw){
+  const W=el.clientWidth, gap=4;
+  const ov=n<2||n*cw+(n-1)*gap<=W?gap:(W-cw)/(n-1)-cw;
+  [...el.children].forEach((ch,i)=>ch.style.marginLeft=i?ov+'px':'0');
+}
+
+const SORT_S={'♠':0,'♥':1,'♦':2,'♣':3,'X':4};
+function render(){
+  const myTurn=S.turn==='me'&&!S.busy&&!S.over&&!S.race;
+
+  const ai=$('aiHand');ai.innerHTML='';
+  S.hands.ai.forEach(()=>ai.appendChild(backEl()));
+  layoutOverlap(ai,S.hands.ai.length,40);
+  $('aiCount').textContent=`${S.hands.ai.length}장`;
+
+  const me=$('meHand');me.innerHTML='';
+  me.classList.toggle('locked',!myTurn);
+  const sorted=[...S.hands.me].sort((a,b)=>SORT_S[a.s]-SORT_S[b.s]||RANKS.indexOf(a.r)-RANKS.indexOf(b.r));
+  for(const c of sorted){
+    const el=cardEl(c);
+    if(myTurn&&canPlay(c)) el.classList.add('ok');
+    el.onclick=()=>onCardTap(c,el);
+    me.appendChild(el);
+  }
+  layoutOverlap(me,sorted.length,me.firstChild?me.firstChild.offsetWidth:56);
+  $('meCount').textContent=`${S.hands.me.length}장`;
+
+  $('aiWho').classList.toggle('turn',S.turn==='ai'&&!S.over);
+  $('meWho').classList.toggle('turn',S.turn==='me'&&!S.over);
+
+  const pile=$('pile');pile.innerHTML='';
+  const t=cardEl(topCard());
+  if(t&&topCard().id===S.lastId) t.classList.add('pop');
+  S.lastId=null;
+  pile.appendChild(t);
+  $('deckCnt').textContent=`덱 ${S.deck.length}장`;
+
+  const b=$('badges');b.innerHTML='';
+  if(S.attack>0) b.innerHTML+=`<span class="badge atk">⚔️ 공격 +${S.attack}</span>`;
+  if(S.suit) b.innerHTML+=`<span class="badge suit${S.suit==='♥'||S.suit==='♦'?' red':''}">무늬 ${S.suit}</span>`;
+  if(isJoker(topCard())&&!S.attack) b.innerHTML+=`<span class="badge">아무 카드나 OK</span>`;
+
+  const db=$('drawBtn');
+  db.disabled=!myTurn;
+  db.textContent=S.attack>0?`${S.attack}장 먹기`:'카드 먹기';
+  $('oneBtn').classList.toggle('show',!!S.race);
+
+  const sc=loadScore();
+  $('score').textContent=`${sc.w}승 ${sc.l}패`;
+}
+
+async function onCardTap(c,el){
+  if(S.turn!=='me'||S.busy||S.over||S.race) return;
+  if(!canPlay(c)){
+    el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');
+    say(S.attack>0?'공격 중엔 더 센 공격 카드로만 막을 수 있어요!':'같은 무늬나 같은 숫자만 낼 수 있어요.');
+    return;
+  }
+  S.busy=true;
+  await doPlay('me',c);
+  S.busy=false;render();
+}
+async function onDraw(){
+  if(S.turn!=='me'||S.busy||S.over||S.race) return;
+  S.busy=true;
+  await doDraw('me');
+  S.busy=false;render();
+}
+
+function loadScore(){try{return JSON.parse(localStorage.getItem('onecard-score'))||{w:0,l:0}}catch(e){return{w:0,l:0}}}
+function saveScore(s){try{localStorage.setItem('onecard-score',JSON.stringify(s))}catch(e){}}
+
+function end(winner,reason){
+  if(S.over) return;
+  S.over=true;
+  if(S.race){clearTimeout(S.race.timer);S.race=null}
+  const sc=loadScore();
+  winner==='me'?sc.w++:sc.l++;
+  saveScore(sc);
+  const win=winner==='me';
+  $('endEmoji').textContent=win?'🏆':'💀';
+  $('endTitle').textContent=win?'승리!':'패배…';
+  $('endText').textContent=reason==='bankrupt'
+    ?(win?'컴퓨터가 20장을 넘겨 파산했어요!':'카드가 20장을 넘어 파산했어요!')
+    :(win?'카드를 모두 털었어요!':'컴퓨터가 먼저 카드를 다 냈어요.');
+  render();
+  setTimeout(()=>$('endModal').classList.add('show'),300);
+}
+
+$('drawBtn').onclick=onDraw;
+$('deck').onclick=onDraw;
+$('oneBtn').onclick=()=>resolveRace('me');
+$('againBtn').onclick=newGame;
+$('rulesBtn').onclick=()=>$('rulesModal').classList.add('show');
+$('rulesClose').onclick=()=>$('rulesModal').classList.remove('show');
+window.addEventListener('resize',()=>S&&render());
+newGame();
+</script>
+</body>
+</html>
