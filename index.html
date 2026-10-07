@@ -15,8 +15,39 @@ body{background:radial-gradient(ellipse at center,var(--felt) 0%,var(--felt2) 10
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:560px;margin:0 auto;
   padding:10px 16px calc(12px + env(safe-area-inset-bottom))}
 header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-header h1{font-size:20px;margin:0;letter-spacing:1px}
-.score{font-size:13px;opacity:.85}
+header h1{font-size:18px;margin:0;white-space:nowrap}
+header>span{display:flex;gap:4px}
+header .iconbtn{padding:6px 9px;font-size:12px;white-space:nowrap}
+.score{white-space:nowrap}
+.opts{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;background:#f3f5f4;border-radius:10px;padding:10px;cursor:pointer}
+.opt.col{flex-direction:column;align-items:stretch;gap:2px;cursor:default}
+.opt input{width:22px;height:22px;margin:0;flex:0 0 auto;accent-color:#2a9d5c}
+.opt span{display:flex;flex-direction:column}
+.opt small{color:#777;font-size:12px;line-height:1.4}
+.seg{display:flex;gap:6px;margin-top:6px}
+.seg button{flex:1;white-space:nowrap;padding:8px 0;border-radius:8px;border:1px solid #ccc;background:#fff;font-size:14px;cursor:pointer}
+.seg button.on{background:#2a9d5c;border-color:#2a9d5c;color:#fff;font-weight:700}
+.note{font-size:13px;color:#2a9d5c;text-align:center;min-height:18px;margin:4px 0 8px}
+.statbig{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 4px}
+.statbig div{display:flex;flex-direction:column;align-items:center;min-width:80px;border-radius:14px;padding:8px 0}
+.statbig small{font-size:14px;font-weight:700}
+.statbig b{font-size:44px;line-height:1.1}
+.statbig .w{background:#e6f5ec;color:#2a9d5c}
+.statbig .l{background:#fde8ea;color:var(--red)}
+.statbig i{font-size:30px;font-style:normal;color:#aaa}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 14px}
+.stat{background:#f3f5f4;border-radius:10px;padding:8px 10px;text-align:left}
+.stat small{display:block;color:#777;font-size:12px}
+.stat b{font-size:17px}
+.hist{list-style:none;padding:0;margin:0 0 14px;text-align:left}
+.hist li{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #eee;font-size:14px}
+.hist li b{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto}
+.hist li.w b{background:#2a9d5c}
+.hist li.l b{background:var(--red)}
+.hist li span{flex:1}
+.hist li small{color:#888}
+.hist li.empty{color:#888;justify-content:center}
 .iconbtn{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
 
 .zone{display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -79,8 +110,11 @@ header h1{font-size:20px;margin:0;letter-spacing:1px}
 <div id="app">
   <header>
     <h1>🃏 원카드</h1>
-    <span class="score" id="score"></span>
-    <button class="iconbtn" id="rulesBtn">규칙</button>
+    <button class="iconbtn score" id="score"></button>
+    <span>
+      <button class="iconbtn" id="resetBtn">🔄 리셋</button>
+      <button class="iconbtn" id="rulesBtn">⚙️ 규칙</button>
+    </span>
   </header>
 
   <div class="zone">
@@ -122,27 +156,64 @@ header h1{font-size:20px;margin:0;letter-spacing:1px}
   <button class="btn" style="background:var(--gold)" id="againBtn">다시 하기</button>
 </div></div>
 
+<div class="modal" id="statsModal"><div class="box">
+  <h2>📊 컴퓨터와의 전적</h2>
+  <div class="statbig" id="statBig"></div>
+  <div class="statgrid" id="statGrid"></div>
+  <p style="margin:0 0 4px"><b>최근 경기</b> (최대 20판)</p>
+  <ul class="hist" id="statList"></ul>
+  <button class="btn" style="background:var(--gold)" id="statsClose">닫기</button>
+</div></div>
+
+<div class="modal" id="resetModal"><div class="box">
+  <h2>처음부터 다시 할까요?</h2>
+  <p style="text-align:center">지금 하던 판은 사라져요.</p>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn" style="background:var(--gold)" id="resetGo">새 게임 시작</button>
+    <button class="btn" style="background:#eee" id="resetAll">승패 기록까지 초기화</button>
+    <button class="btn" style="background:#fff;border:1px solid #ccc" id="resetCancel">취소</button>
+  </div>
+</div></div>
+
 <div class="modal" id="rulesModal"><div class="box">
-  <h2>원카드 규칙</h2>
+  <h2>⚙️ 로컬룰 설정</h2>
+  <div class="opts">
+    <label class="opt"><input type="checkbox" id="optChain"><span><b>같은 숫자 연달아 내기</b><small>5♥ → 5♠ → 5♣ 처럼 한 차례에 계속 내기. 공격 카드는 겹치면 누적</small></span></label>
+    <label class="opt"><input type="checkbox" id="optBlock3"><span><b>3으로 2 공격 막기</b><small>2♠ 공격을 받으면 3♠로 공격을 없앨 수 있음</small></span></label>
+    <label class="opt"><input type="checkbox" id="optSpadeA"><span><b>♠A는 +5장</b><small>끄면 ♠A도 다른 A처럼 +3장</small></span></label>
+    <div class="opt col"><b>파산 기준</b><small>손패가 이 장수 이상이면 패배</small>
+      <div class="seg" id="optBankrupt">
+        <button data-v="15">15장</button><button data-v="20">20장</button><button data-v="25">25장</button><button data-v="0">끄기</button>
+      </div>
+    </div>
+  </div>
+  <p id="optNote" class="note"></p>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+    <button class="btn" style="background:var(--gold)" id="optApply">적용하고 새 게임</button>
+    <button class="btn" style="background:#eee" id="rulesClose">닫기</button>
+  </div>
+
+  <h2>기본 규칙</h2>
   <ul>
     <li>각자 <b>7장</b>으로 시작, 손패를 먼저 다 내면 <b>승리</b></li>
     <li>맨 위 카드와 <b>같은 무늬</b> 또는 <b>같은 숫자</b>를 낼 수 있어요</li>
     <li>낼 카드가 없으면 <b>1장 먹기</b> (낼 수 있어도 먹어도 돼요)</li>
-    <li><b>공격</b>: 2 = +2장, A = +3장, ♠A = +5장, 흑백 조커 = +5장, 컬러 조커 = +7장</li>
+    <li><b>공격</b>: 2 = +2장, A = +3장, 흑백 조커 = +5장, 컬러 조커 = +7장</li>
     <li>공격받으면 <b>같은 무늬·숫자이면서 더 세거나 같은</b> 공격 카드로 막을 수 있어요 (공격은 누적!). 못 막으면 쌓인 만큼 먹어요</li>
     <li>조커는 아무 때나 낼 수 있고, 조커 뒤에는 아무 카드나 낼 수 있어요</li>
     <li><b>J·Q·K</b>: 1대1이라 상대 턴을 건너뛰고 <b>한 번 더</b></li>
     <li><b>7</b>: 원하는 <b>무늬로 바꾸기</b></li>
     <li>카드가 1장 남으면 <b>원카드!</b> 버튼 싸움 — 늦게 누르면 1장 먹어요. 상대가 1장일 때 먼저 누르면 상대가 먹어요</li>
-    <li>손패가 <b>20장</b> 이상이 되면 <b>파산</b>(패배)</li>
   </ul>
-  <button class="btn" style="background:var(--gold)" id="rulesClose">알겠어요</button>
 </div></div>
 
 <script>
 const SUITS=['♠','♥','♦','♣'];
 const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const BANKRUPT=20;
+// 로컬룰 (판이 시작될 때 S.rules로 복사됨)
+const DEFAULT_RULES={chain:true,block3:true,spadeA:true,bankrupt:20};
+function loadRules(){try{return Object.assign({},DEFAULT_RULES,JSON.parse(localStorage.getItem('onecard-rules')))}catch(e){return{...DEFAULT_RULES}}}
+function saveRules(r){try{localStorage.setItem('onecard-rules',JSON.stringify(r))}catch(e){}}
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const other=w=>w==='me'?'ai':'me';
@@ -154,7 +225,7 @@ const isFace=c=>c.r==='J'||c.r==='Q'||c.r==='K';
 function power(c){
   if(c.r==='CJ') return 7;
   if(c.r==='BJ') return 5;
-  if(c.r==='A') return c.s==='♠'?5:3;
+  if(c.r==='A') return c.s==='♠'&&S.rules.spadeA?5:3;
   if(c.r==='2') return 2;
   return 0;
 }
@@ -174,7 +245,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;
 let S;
 function newGame(){
   const deck=shuffle(makeDeck());
-  S={deck,pile:[],hands:{me:[],ai:[]},turn:'me',attack:0,suit:null,over:false,busy:false,race:null,lastId:null};
+  S={deck,pile:[],hands:{me:[],ai:[]},turn:'me',attack:0,suit:null,chain:null,turns:0,rules:loadRules(),over:false,busy:false,race:null,lastId:null};
   for(let i=0;i<7;i++){S.hands.me.push(deck.pop());S.hands.ai.push(deck.pop())}
   // 시작 카드는 특수 카드가 아닌 숫자 카드로
   const i=deck.findIndex(c=>['3','4','5','6','8','9','10'].includes(c.r));
@@ -186,8 +257,12 @@ function newGame(){
 
 const topCard=()=>S.pile[S.pile.length-1];
 function canPlay(c){
+  // 같은 숫자 연달아 내는 중이면 그 숫자만 가능
+  if(S.chain) return !isJoker(c)&&c.r===S.chain;
   const t=topCard();
   if(S.attack>0){
+    // 2 공격은 같은 무늬 3으로 막기
+    if(S.rules.block3&&t.r==='2'&&c.r==='3'&&c.s===t.s) return true;
     const p=power(c);
     if(!p||p<power(t)) return false;
     if(isJoker(c)) return true;
@@ -207,7 +282,7 @@ function drawOne(who){
   if(S.deck.length) S.hands[who].push(S.deck.pop());
 }
 function checkBankrupt(who){
-  if(S.hands[who].length>=BANKRUPT){end(other(who),'bankrupt');return true}
+  if(S.rules.bankrupt&&S.hands[who].length>=S.rules.bankrupt){end(other(who),'bankrupt');return true}
   return false;
 }
 
@@ -216,13 +291,32 @@ async function doPlay(who,c){
   h.splice(h.indexOf(c),1);
   S.pile.push(c);S.suit=null;S.lastId=c.id;
   const p=power(c);
+  const blocked=S.rules.block3&&c.r==='3'&&S.attack>0;
+  if(blocked) S.attack=0;
   if(p) S.attack+=p;
   const extra=isFace(c);
   let m=`${NAME[who]}: ${label(c)}`;
-  if(p) m+=` → 공격 누적 +${S.attack}!`;
+  if(blocked) m+=' → 🛡️ 2 공격 방어!';
+  else if(p) m+=` → 공격 누적 +${S.attack}!`;
   else if(extra) m+=' → 한 번 더!';
   say(m);render();
-  if(!h.length){await sleep(400);end(who,'empty');return}
+  const g=S;
+  if(!h.length){await sleep(400);if(S===g) end(who,'empty');return}
+  // 같은 숫자가 더 있으면 연달아 낼 수 있음
+  if(S.rules.chain&&!isJoker(c)&&h.some(x=>x.r===c.r)){
+    S.chain=c.r;
+    if(who==='ai'){await sleep(700);if(S!==g) return;return doPlay('ai',h.find(x=>x.r===c.r))}
+    say(m+`<br>같은 숫자(${c.r})를 더 낼 수 있어요! 더 내거나 <b>턴 끝내기</b>`);
+    render();
+    return;
+  }
+  await finishTurn(who,c);
+}
+
+async function finishTurn(who,c){
+  S.chain=null;
+  const h=S.hands[who];
+  const extra=isFace(c);
   if(c.r==='7'){
     S.suit=who==='me'?await pickSuit():aiPickSuit();
     say(`${NAME[who]}: 무늬를 ${S.suit}(으)로 바꿨어요.`);render();
@@ -245,8 +339,11 @@ async function doDraw(who){
 
 async function afterAction(who,extra){
   S.turn=extra?who:other(who);
+  S.turns++;
   render();
-  if(S.turn==='ai'){await sleep(900);await aiTurn()}
+  // 리셋되면 이전 게임의 진행은 멈춤
+  const g=S;
+  if(S.turn==='ai'){await sleep(900);if(S===g) await aiTurn()}
 }
 
 // ---------- AI ----------
@@ -317,7 +414,7 @@ function cardEl(c){
     d.innerHTML=`<div class="c">${c.r}<br>${c.s}</div><div class="m">${isFace(c)?c.r:c.s}</div>`;
   }
   const p=power(c);
-  const tag=p?'+'+p:isFace(c)?'↻':c.r==='7'?'무늬':'';
+  const tag=p?'+'+p:c.r==='3'&&S.rules.block3?'🛡️':isFace(c)?'↻':c.r==='7'?'무늬':'';
   if(tag) d.innerHTML+=`<div class="tag">${tag}</div>`;
   return d;
 }
@@ -367,18 +464,18 @@ function render(){
 
   const db=$('drawBtn');
   db.disabled=!myTurn;
-  db.textContent=S.attack>0?`${S.attack}장 먹기`:'카드 먹기';
+  db.textContent=S.chain?'턴 끝내기':S.attack>0?`${S.attack}장 먹기`:'카드 먹기';
   $('oneBtn').classList.toggle('show',!!S.race);
 
   const sc=loadScore();
-  $('score').textContent=`${sc.w}승 ${sc.l}패`;
+  $('score').textContent=`📊 전적 ${sc.w}승 ${sc.l}패`;
 }
 
 async function onCardTap(c,el){
   if(S.turn!=='me'||S.busy||S.over||S.race) return;
   if(!canPlay(c)){
     el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');
-    say(S.attack>0?'공격 중엔 더 센 공격 카드로만 막을 수 있어요!':'같은 무늬나 같은 숫자만 낼 수 있어요.');
+    say(S.chain?`지금은 같은 숫자(${S.chain})만 더 낼 수 있어요. 아니면 턴 끝내기!`:S.attack>0?'공격 중엔 더 센 공격 카드로만 막을 수 있어요!':'같은 무늬나 같은 숫자만 낼 수 있어요.');
     return;
   }
   S.busy=true;
@@ -388,25 +485,63 @@ async function onCardTap(c,el){
 async function onDraw(){
   if(S.turn!=='me'||S.busy||S.over||S.race) return;
   S.busy=true;
-  await doDraw('me');
+  if(S.chain) await finishTurn('me',topCard());
+  else await doDraw('me');
   S.busy=false;render();
 }
 
-function loadScore(){try{return JSON.parse(localStorage.getItem('onecard-score'))||{w:0,l:0}}catch(e){return{w:0,l:0}}}
+function resetGame(clearScore){
+  if(S.race) clearTimeout(S.race.timer);
+  if(clearScore) saveScore({w:0,l:0,streak:0,best:0,history:[]});
+  document.querySelectorAll('.modal').forEach(m=>m.classList.remove('show'));
+  newGame();
+}
+
+// 전적: 승/패, 연승 기록, 최근 경기 목록
+function loadScore(){
+  const d={w:0,l:0,streak:0,best:0,history:[]};
+  try{return Object.assign(d,JSON.parse(localStorage.getItem('onecard-score')))}catch(e){return d}
+}
 function saveScore(s){try{localStorage.setItem('onecard-score',JSON.stringify(s))}catch(e){}}
+
+function showStats(){
+  const sc=loadScore(), n=sc.w+sc.l;
+  const rate=n?Math.round(sc.w/n*100):0;
+  const wins=sc.history.filter(h=>h.win);
+  const fastest=wins.length?Math.min(...wins.map(h=>h.turns)):null;
+  const streak=sc.streak>0?`🔥 ${sc.streak}연승 중`:sc.streak<0?`🥶 ${-sc.streak}연패 중`:'-';
+  $('statBig').innerHTML=`<div class="w"><small>승</small><b>${sc.w}</b></div><i>:</i><div class="l"><small>패</small><b>${sc.l}</b></div>`;
+  $('statGrid').innerHTML=[
+    ['전체',`${n}판`],['승률',`${rate}%`],
+    ['현재',streak],
+    ['최다 연승',`${sc.best}연승`],['최단 승리',fastest?`${fastest}턴`:'-']
+  ].map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join('');
+  $('statList').innerHTML=sc.history.length
+    ?sc.history.map(h=>{
+      const d=new Date(h.t);
+      const why=h.reason==='bankrupt'?(h.win?'상대 파산':'파산'):(h.win?'카드 다 냄':`남은 카드 ${h.me}장`);
+      return `<li class="${h.win?'w':'l'}"><b>${h.win?'승':'패'}</b><span>${why} · ${h.turns}턴</span><small>${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</small></li>`;
+    }).join('')
+    :'<li class="empty">아직 기록이 없어요. 한 판 해보세요!</li>';
+  $('statsModal').classList.add('show');
+}
 
 function end(winner,reason){
   if(S.over) return;
   S.over=true;
   if(S.race){clearTimeout(S.race.timer);S.race=null}
-  const sc=loadScore();
-  winner==='me'?sc.w++:sc.l++;
-  saveScore(sc);
   const win=winner==='me';
+  const sc=loadScore();
+  win?sc.w++:sc.l++;
+  sc.streak=win?Math.max(sc.streak,0)+1:Math.min(sc.streak,0)-1;
+  sc.best=Math.max(sc.best,sc.streak);
+  sc.history.unshift({win,reason,t:Date.now(),turns:S.turns,me:S.hands.me.length,ai:S.hands.ai.length});
+  sc.history=sc.history.slice(0,20);
+  saveScore(sc);
   $('endEmoji').textContent=win?'🏆':'💀';
   $('endTitle').textContent=win?'승리!':'패배…';
   $('endText').textContent=reason==='bankrupt'
-    ?(win?'컴퓨터가 20장을 넘겨 파산했어요!':'카드가 20장을 넘어 파산했어요!')
+    ?(win?`컴퓨터 카드가 ${S.rules.bankrupt}장 이상이 되어 파산했어요!`:`카드가 ${S.rules.bankrupt}장 이상이 되어 파산했어요!`)
     :(win?'카드를 모두 털었어요!':'컴퓨터가 먼저 카드를 다 냈어요.');
   render();
   setTimeout(()=>$('endModal').classList.add('show'),300);
@@ -416,8 +551,31 @@ $('drawBtn').onclick=onDraw;
 $('deck').onclick=onDraw;
 $('oneBtn').onclick=()=>resolveRace('me');
 $('againBtn').onclick=newGame;
-$('rulesBtn').onclick=()=>$('rulesModal').classList.add('show');
-$('rulesClose').onclick=()=>$('rulesModal').classList.remove('show');
+$('score').onclick=showStats;
+$('statsClose').onclick=()=>$('statsModal').classList.remove('show');
+$('resetBtn').onclick=()=>$('resetModal').classList.add('show');
+$('resetGo').onclick=()=>resetGame(false);
+$('resetAll').onclick=()=>resetGame(true);
+$('resetCancel').onclick=()=>$('resetModal').classList.remove('show');
+// ---------- 로컬룰 설정 화면 ----------
+let draftRules;
+function sameRules(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function renderRulesForm(){
+  $('optChain').checked=draftRules.chain;
+  $('optBlock3').checked=draftRules.block3;
+  $('optSpadeA').checked=draftRules.spadeA;
+  $('optBankrupt').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===draftRules.bankrupt));
+  const changed=!sameRules(draftRules,S.rules);
+  $('optNote').textContent=changed?'바뀐 규칙은 새 게임부터 적용돼요.':'';
+  $('rulesClose').textContent=changed?'저장하고 닫기 (다음 판부터)':'닫기';
+}
+$('rulesBtn').onclick=()=>{draftRules=loadRules();renderRulesForm();$('rulesModal').classList.add('show')};
+[['optChain','chain'],['optBlock3','block3'],['optSpadeA','spadeA']].forEach(([id,k])=>{
+  $(id).onchange=()=>{draftRules[k]=$(id).checked;renderRulesForm()};
+});
+$('optBankrupt').querySelectorAll('button').forEach(b=>b.onclick=()=>{draftRules.bankrupt=+b.dataset.v;renderRulesForm()});
+$('rulesClose').onclick=()=>{saveRules(draftRules);$('rulesModal').classList.remove('show')};
+$('optApply').onclick=()=>{saveRules(draftRules);resetGame(false)};
 window.addEventListener('resize',()=>S&&render());
 newGame();
 </script>
